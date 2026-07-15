@@ -12,7 +12,7 @@ from core.schemas import (
 from tools.video.mock_image_generator import MockImageGenerator
 from tools.video.mock_status import MockJobStatusChecker
 from tools.video.mock_video_generator import MockVideoGenerator
-
+from agents.base_agent import BaseAgent
 
 class VideoWorkflow:
     """
@@ -49,6 +49,38 @@ class VideoWorkflow:
         self.status_checker = status_checker
         self.result_dir = Path(result_dir)
 
+    async def run_with_agent(
+    self,
+    task: VideoTask,
+    agent: BaseAgent,
+    ) -> TaskResult:
+        """
+    通过 Agent 自动生成分镜，并执行完整视频流程。
+
+    执行过程：
+
+    1. 把 VideoTask 交给 Agent。
+    2. Agent 生成 Storyboard。
+    3. 把 Storyboard 交给底层 run()。
+    4. 底层 run() 调用图片和视频工具。
+    5. 返回最终 TaskResult。
+
+    参数：
+        task：用户提交的视频任务。
+        agent：主编排 Agent。
+
+    返回：
+        TaskResult：最终视频任务结果。
+        """
+    # Agent 负责理解任务并生成分镜计划。
+        storyboard = await agent.run(task)
+
+    # Pipeline 负责执行分镜计划。
+        return await self.run(
+            task=task,
+        storyboard=storyboard,
+        )
+    
     async def run(
         self,
         task: VideoTask,
@@ -304,3 +336,4 @@ class VideoWorkflow:
             image_urls=image_urls,
             manifest_url=str(manifest_path),
         )
+    
